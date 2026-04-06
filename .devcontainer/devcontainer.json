@@ -17,6 +17,7 @@
         "vscode": {
             "extensions": [
                 "anthropic.claude-code",
+                "batisteo.vscode-django",
                 "charliermarsh.ruff",
                 "formulahendry.auto-rename-tag",
                 "GitHub.copilot-chat",

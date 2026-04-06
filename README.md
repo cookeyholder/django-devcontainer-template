@@ -48,7 +48,7 @@
 ### 腳本與生命週期
 
 - **post-create**：分階段初始化（共 5 個階段，詳見下方）
-- **post-start**：每次啟動時安裝 pre-commit hooks、自動啟動 Django 開發伺服器並驗證是否成功
+- **post-start**：每次啟動時安裝 pre-commit hooks（含 pre-push）、執行 djlint 模板檢查（`templates/`），並自動啟動 Django 開發伺服器
 - **rebuild.sh**：完整清除容器與 Volume，準備重建
 - **setup-pre-commit.sh**：安裝 / 重新安裝 pre-commit hooks
 
@@ -185,6 +185,16 @@ REDIS_PASSWORD=dev_password
 | ----------------------------------- | ----------------------------------------------------------------------- |
 | `.devcontainer/rebuild.sh`          | 停止容器、（可選）刪除 Volume、執行 `docker system prune`，然後重建容器 |
 | `.devcontainer/setup-pre-commit.sh` | 安裝或重新安裝 pre-commit hooks，並設定 git 身份                        |
+
+常用檢查捷徑：
+
+```bash
+# 執行所有 pre-commit checks
+make precommit
+
+# 只執行 djlint 模板檢查
+make precommit-djlint
+```
 
 ---
 

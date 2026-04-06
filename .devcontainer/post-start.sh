@@ -18,9 +18,14 @@ log_info "🚀 Running post-start hooks..."
 
 # Install pre-commit hooks
 if command -v pre-commit >/dev/null 2>&1 && [ -f ".pre-commit-config.yaml" ]; then
-    pre-commit install >/dev/null 2>&1 \
+    pre-commit install --hook-type pre-commit --hook-type pre-push >/dev/null 2>&1 \
         && log_success "pre-commit hooks installed" \
         || log_warning "pre-commit install failed — run manually: pre-commit install"
+
+    # Run an explicit template lint pass on every container start.
+    pre-commit run djlint-django --all-files >/dev/null 2>&1 \
+        && log_success "djlint template check passed" \
+        || log_warning "djlint template check found issues — run manually: pre-commit run djlint-django --all-files"
 fi
 
 # Auto-start Django dev server if not already running
