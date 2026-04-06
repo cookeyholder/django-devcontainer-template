@@ -4,6 +4,9 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile
     command: sleep infinity
+    # Docker-in-Docker 需要 privileged 模式，讓容器內的 Docker daemon 得以操控核心功能
+    # （如 iptables、cgroup 與 namespace）
+    privileged: true
     volumes:
       - ..:/workspace:cached
       - venv:/workspace/.venv

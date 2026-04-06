@@ -4,7 +4,13 @@
     "service": "app",
     "workspaceFolder": "/workspace",
     "features": {
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+        // Docker-in-Docker：在容器內執行完整的 Docker daemon（DinD 模式）
+        // 使用 Docker CE（moby: false），因為 Moby 套件在 Debian Trixie 已被移除
+        // 容器必須以 privileged 模式（或等效的 securityOpt）啟動才能運作
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {
+            "moby": false,
+            "dockerDashComposeVersion": "v2"
+        }
     },
     "forwardPorts": [8000, 5432, 6379, 5555, 8080, 9090],
     "customizations": {
