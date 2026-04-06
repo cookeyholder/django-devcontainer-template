@@ -1,0 +1,93 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    command: sleep infinity
+    volumes:
+      - ..:/workspace:cached
+      - venv:/workspace/.venv
+      - uv-cache:/home/vscode/.cache/uv
+      - mypy-cache:/workspace/.mypy_cache
+      - playwright-cache:/home/vscode/.cache/ms-playwright
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings}
+      DJANGO_PROJECT_DIR: ${DJANGO_PROJECT_DIR:-src}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-dev_password}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command:
+      ["sh", "-c", "redis-server --requirepass ${REDIS_PASSWORD:-dev_password}"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-dev_password}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Optional: Celery services (uncomment if your project uses Celery) ---
+  # celery:
+  #   build:
+  #     context: ..
+  #     dockerfile: .devcontainer/Dockerfile
+  #   command: >
+  #     bash -c "
+  #       echo 'Waiting for venv...';
+  #       until [ -f /workspace/.venv/bin/celery ]; do sleep 5; done;
+  #       cd /workspace/${DJANGO_PROJECT_DIR:-src} && /workspace/.venv/bin/celery -A config worker -l info --pool=solo
+  #     "
+  #   volumes:
+  #     - ..:/workspace:cached
+  #     - venv:/workspace/.venv
+  #   environment:
+  #     PYTHONUNBUFFERED: "1"
+  #     DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings}
+  #   depends_on:
+  #     - db
+  #     - redis
+  #     - app
+
+volumes:
+  postgres_data:
+  redis_data:
+  venv:
+  uv-cache:
+  mypy-cache:
+  playwright-cache:

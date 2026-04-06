@@ -1,0 +1,57 @@
+{
+    "name": "Django DevContainer Template",
+    "dockerComposeFile": "./docker-compose.dev.yml",
+    "service": "app",
+    "workspaceFolder": "/workspace",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    },
+    "forwardPorts": [8000, 5432, 6379, 5555, 8080, 9090],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "anthropic.claude-code",
+                "charliermarsh.ruff",
+                "formulahendry.auto-rename-tag",
+                "GitHub.copilot-chat",
+                "mechatroner.rainbow-csv",
+                "mhutchie.git-graph",
+                "monosans.djlint",
+                "ms-docker.vscode-docker",
+                "ms-playwright.playwright",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "naumovs.color-highlight",
+                "openspec.openspec-for-copilot",
+                "PKief.material-icon-theme",
+                "SeyyedKhandon.firacode",
+                "shd101wyy.markdown-preview-enhanced",
+                "streetsidesoftware.code-spell-checker",
+                "yzhang.markdown-all-in-one"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+                "ruff.configurationPreference": "filesystemFirst",
+                "djlint.useVenv": true,
+                "djlint.pythonPath": "/workspace/.venv/bin/python",
+                "editor.formatOnSave": true,
+                "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" },
+                "[html][django-html]": {
+                    "editor.defaultFormatter": "monosans.djlint",
+                    "editor.suggest.insertMode": "replace",
+                    "djlint.enableLinting": true
+                }
+            }
+        }
+    },
+    "initializeCommand": {
+        "check-docker": "docker --version",
+        "check-compose": "docker compose version"
+    },
+    "postCreateCommand": "bash /workspace/.devcontainer/post-create.sh",
+    "postStartCommand": "bash /workspace/.devcontainer/post-start.sh",
+    "postAttachCommand": "echo '✅ Django DevContainer ready!' && echo '🌐 Web: http://localhost:8000'",
+    "waitFor": "postCreateCommand",
+    "remoteUser": "vscode",
+    "overrideCommand": false
+}
