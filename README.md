@@ -13,19 +13,19 @@
 
 ### 開發工具（預先安裝）
 
-| 工具            | 說明                            |
-| --------------- | ------------------------------- |
-| `ruff`          | Python 程式碼格式化與 lint      |
-| `djlint`        | Django HTML 範本 lint           |
-| `pre-commit`    | Git 提交前檢查hook              |
-| `pip-audit`     | Python 相依套件安全性掃描       |
-| `gh`            | GitHub CLI                      |
-| `rg`（ripgrep） | 快速全文搜尋                    |
-| `fd`            | 快速檔案搜尋（`find` 替代方案） |
-| `jq` / `yq`     | JSON / YAML 命令列處理          |
-| `fzf`           | 互動式模糊搜尋                                                              |
-| `ast-grep`      | 基於 AST 的程式碼結構搜尋                                                   |
-| `gh copilot`    | GitHub Copilot CLI（`gh copilot explain` / `gh copilot suggest`）           |
+| 工具            | 說明                                                              |
+| --------------- | ----------------------------------------------------------------- |
+| `ruff`          | Python 程式碼格式化與 lint                                        |
+| `djlint`        | Django HTML 範本 lint                                             |
+| `pre-commit`    | Git 提交前檢查hook                                                |
+| `pip-audit`     | Python 相依套件安全性掃描                                         |
+| `gh`            | GitHub CLI                                                        |
+| `rg`（ripgrep） | 快速全文搜尋                                                      |
+| `fd`            | 快速檔案搜尋（`find` 替代方案）                                   |
+| `jq` / `yq`     | JSON / YAML 命令列處理                                            |
+| `fzf`           | 互動式模糊搜尋                                                    |
+| `ast-grep`      | 基於 AST 的程式碼結構搜尋                                         |
+| `gh copilot`    | GitHub Copilot CLI（`gh copilot explain` / `gh copilot suggest`） |
 
 ### 固定版本的 Node CLI 工具
 
