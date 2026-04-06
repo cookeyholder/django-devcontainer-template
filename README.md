@@ -13,26 +13,27 @@
 
 ### 開發工具（預先安裝）
 
-| 工具 | 說明 |
-| --- | --- |
-| `ruff` | Python 程式碼格式化與 lint |
-| `djlint` | Django HTML 範本 lint |
-| `pre-commit` | Git 提交前檢查hook |
-| `pip-audit` | Python 相依套件安全性掃描 |
-| `gh` | GitHub CLI |
-| `rg`（ripgrep） | 快速全文搜尋 |
-| `fd` | 快速檔案搜尋（`find` 替代方案） |
-| `jq` / `yq` | JSON / YAML 命令列處理 |
-| `fzf` | 互動式模糊搜尋 |
-| `ast-grep` | 基於 AST 的程式碼結構搜尋 |
+| 工具            | 說明                            |
+| --------------- | ------------------------------- |
+| `ruff`          | Python 程式碼格式化與 lint      |
+| `djlint`        | Django HTML 範本 lint           |
+| `pre-commit`    | Git 提交前檢查hook              |
+| `pip-audit`     | Python 相依套件安全性掃描       |
+| `gh`            | GitHub CLI                      |
+| `rg`（ripgrep） | 快速全文搜尋                    |
+| `fd`            | 快速檔案搜尋（`find` 替代方案） |
+| `jq` / `yq`     | JSON / YAML 命令列處理          |
+| `fzf`           | 互動式模糊搜尋                                                              |
+| `ast-grep`      | 基於 AST 的程式碼結構搜尋                                                   |
+| `gh copilot`    | GitHub Copilot CLI（`gh copilot explain` / `gh copilot suggest`）           |
 
 ### 固定版本的 Node CLI 工具
 
-| 套件 | 說明 |
-| --- | --- |
-| `@ast-grep/cli` | AST 搜尋 CLI |
-| `@fission-ai/openspec` | OpenSpec 工作流程 CLI |
-| `agent-browser` | AI agent 瀏覽器自動化工具 |
+| 套件                   | 說明                      |
+| ---------------------- | ------------------------- |
+| `@ast-grep/cli`        | AST 搜尋 CLI              |
+| `@fission-ai/openspec` | OpenSpec 工作流程 CLI     |
+| `agent-browser`        | AI agent 瀏覽器自動化工具 |
 
 ### VS Code 整合
 
@@ -134,13 +135,13 @@ REDIS_PASSWORD=dev_password
 
 ## Post-create 初始化階段
 
-| 階段 | 說明 |
-| --- | --- |
-| **Stage 0** | 清理 VS Code server extension 快取（防止 SIGPIPE 錯誤累積） |
-| **Stage 1** | Python 虛擬環境（`.venv`）建立或重用；重建時保留已快取的套件 |
-| **Stage 2** | 安裝 Playwright Chromium 瀏覽器（若 venv 內有 playwright） |
+| 階段        | 說明                                                                                          |
+| ----------- | --------------------------------------------------------------------------------------------- |
+| **Stage 0** | 清理 VS Code server extension 快取（防止 SIGPIPE 錯誤累積）                                   |
+| **Stage 1** | Python 虛擬環境（`.venv`）建立或重用；重建時保留已快取的套件                                  |
+| **Stage 2** | 安裝 Playwright Chromium 瀏覽器（若 venv 內有 playwright）                                    |
 | **Stage 3** | 驗證 CLI 工具是否可用：`agent-browser`、`openspec`、`rg`、`fd`、`ast-grep`、`jq`、`fzf`、`gh` |
-| **Stage 4** | 執行 `manage.py migrate` 與 `collectstatic`（若找不到 `manage.py` 則略過） |
+| **Stage 4** | 執行 `manage.py migrate` 與 `collectstatic`（若找不到 `manage.py` 則略過）                    |
 
 ---
 
@@ -155,11 +156,11 @@ REDIS_PASSWORD=dev_password
 
 ### 技術細節（Debian Trixie 注意事項）
 
-| 項目 | 說明 |
-| --- | --- |
-| `moby: false` | Moby 套件已從 Debian Trixie 移除，必須改用 Docker CE |
-| `iptables` | Trixie 無 `iptables-legacy`，改用 `iptables-nft`（Docker 24+ 完整支援） |
-| `privileged: true` | `docker-compose.dev.yml` 中設定，允許 dockerd 操控 cgroup 與 namespace |
+| 項目               | 說明                                                                    |
+| ------------------ | ----------------------------------------------------------------------- |
+| `moby: false`      | Moby 套件已從 Debian Trixie 移除，必須改用 Docker CE                    |
+| `iptables`         | Trixie 無 `iptables-legacy`，改用 `iptables-nft`（Docker 24+ 完整支援） |
+| `privileged: true` | `docker-compose.dev.yml` 中設定，允許 dockerd 操控 cgroup 與 namespace  |
 
 ---
 
@@ -180,10 +181,10 @@ REDIS_PASSWORD=dev_password
 
 ## 工具腳本
 
-| 腳本 | 說明 |
-| --- | --- |
-| `.devcontainer/rebuild.sh` | 停止容器、（可選）刪除 Volume、執行 `docker system prune`，然後重建容器 |
-| `.devcontainer/setup-pre-commit.sh` | 安裝或重新安裝 pre-commit hooks，並設定 git 身份 |
+| 腳本                                | 說明                                                                    |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| `.devcontainer/rebuild.sh`          | 停止容器、（可選）刪除 Volume、執行 `docker system prune`，然後重建容器 |
+| `.devcontainer/setup-pre-commit.sh` | 安裝或重新安裝 pre-commit hooks，並設定 git 身份                        |
 
 ---
 
@@ -204,6 +205,11 @@ agent-browser --help
 rg --version
 fd --version
 ast-grep --version
+
+# 確認 GitHub Copilot CLI
+gh copilot --version
+gh copilot explain "list files in a directory"
+gh copilot suggest "delete all stopped containers"
 
 # 確認 Playwright
 /workspace/.venv/bin/python -m playwright --help

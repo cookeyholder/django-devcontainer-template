@@ -86,6 +86,13 @@ RUN npm config set prefix /usr/local \
     agent-browser@${AGENT_BROWSER_VERSION} \
     && npm cache clean --force
 
+# 安裝 GitHub Copilot CLI（gh extension）
+# gh copilot 提供 `gh copilot explain` 與 `gh copilot suggest` 指令
+# 以 vscode 使用者身份安裝，確保 extension 路徑正確（~/.local/share/gh/extensions/）
+RUN export HOME=/home/${USERNAME} \
+    && gh extension install github/gh-copilot \
+    && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.local 2>/dev/null || true
+
 # 確保非 root 使用者擁有正確的權限，並設定快取目錄
 RUN chown -R ${USERNAME} /workspace \
     && mkdir -p /home/${USERNAME}/.cache/uv \
