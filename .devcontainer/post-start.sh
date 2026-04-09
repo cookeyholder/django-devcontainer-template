@@ -11,8 +11,21 @@ log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warning() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 
+is_port_in_use() {
+    lsof -i ":$1" >/dev/null 2>&1
+}
+
 cd /workspace
+for env_file in ".env" ".env.dev"; do
+    if [ -f "$env_file" ]; then
+        set -a
+        # shellcheck source=/dev/null
+        source "$env_file"
+        set +a
+    fi
+done
 PROJECT_DIR="${DJANGO_PROJECT_DIR:-src}"
+DJANGO_LOG_FILE="/tmp/django-devserver.log"
 
 log_info "🚀 Running post-start hooks..."
 
@@ -28,17 +41,23 @@ if command -v pre-commit >/dev/null 2>&1 && [ -f ".pre-commit-config.yaml" ]; th
         || log_warning "djlint template check found issues — run manually: pre-commit run djlint-django --all-files"
 fi
 
-# Auto-start Django dev server if not already running
+# Keep the database schema current on every start.
 if [ -x "/workspace/.venv/bin/python" ] && [ -f "/workspace/${PROJECT_DIR}/manage.py" ]; then
-    DJANGO_CMD_PATTERN="manage.py runserver 0.0.0.0:8000"
-    if pgrep -f "$DJANGO_CMD_PATTERN" >/dev/null 2>&1; then
-        log_info "Django dev server already running, skipping"
+    log_info "Running Django migrate..."
+    (
+        cd "/workspace/${PROJECT_DIR}"
+        /workspace/.venv/bin/python manage.py migrate --noinput
+    )
+
+    # Auto-start Django dev server if the port is free.
+    if is_port_in_use 8000; then
+        log_info "Port 8000 is already in use, skipping Django auto-start"
     else
         log_info "Starting Django dev server (0.0.0.0:8000)..."
         (
             cd "/workspace/${PROJECT_DIR}"
             nohup /workspace/.venv/bin/python manage.py runserver 0.0.0.0:8000 --noreload \
-                >/tmp/django-devserver.log 2>&1 &
+                >"$DJANGO_LOG_FILE" 2>&1 &
         )
 
         # Wait up to 10 seconds to confirm the server is reachable
@@ -54,7 +73,7 @@ if [ -x "/workspace/.venv/bin/python" ] && [ -f "/workspace/${PROJECT_DIR}/manag
         if [ "$started" = true ]; then
             log_success "Django dev server started: http://localhost:8000"
         else
-            log_warning "Django dev server may not have started — check /tmp/django-devserver.log"
+            log_warning "Django dev server may not have started — check $DJANGO_LOG_FILE"
         fi
     fi
 else

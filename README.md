@@ -22,6 +22,7 @@
 | `gh`            | GitHub CLI                                                        |
 | `rg`（ripgrep） | 快速全文搜尋                                                      |
 | `fd`            | 快速檔案搜尋（`find` 替代方案）                                   |
+| `lsof`          | 檢查 port 佔用狀態                                                |
 | `jq` / `yq`     | JSON / YAML 命令列處理                                            |
 | `fzf`           | 互動式模糊搜尋                                                    |
 | `ast-grep`      | 基於 AST 的程式碼結構搜尋                                         |
@@ -48,9 +49,9 @@
 ### 腳本與生命週期
 
 - **post-create**：分階段初始化（共 5 個階段，詳見下方）
-- **post-start**：每次啟動時安裝 pre-commit hooks（含 pre-push）、執行 djlint 模板檢查（`templates/`），並自動啟動 Django 開發伺服器
-- **rebuild.sh**：完整清除容器與 Volume，準備重建
-- **setup-pre-commit.sh**：安裝 / 重新安裝 pre-commit hooks
+- **post-start**：每次啟動時安裝 pre-commit hooks（含 pre-push）、執行 djlint 模板檢查（`templates/`）、套用 `.env` / `.env.dev`，執行 `migrate`，並以背景程序自動啟動 Django 開發伺服器（`/tmp/django-devserver.log`）
+- **rebuild.sh**：以 `docker compose down --remove-orphans` 停止容器，並可透過 `--volumes` 進一步清除 Volume
+- **setup-pre-commit.sh**：安裝 / 重新安裝 pre-commit 與 pre-push hooks
 
 ---
 
@@ -71,6 +72,8 @@ code .
 ```
 
 容器就緒後，瀏覽器開啟 [http://localhost:8000](http://localhost:8000) 即可看到 Django 應用程式。
+
+`post-create.sh` 與 `post-start.sh` 會自動讀取 `.env` 與 `.env.dev`（若存在）；通常建議把本機覆寫放在 `.env.dev`。
 
 ---
 
@@ -101,7 +104,7 @@ DJANGO_SETTINGS_MODULE=config.settings
 
 ## 環境變數（`.env.dev`）
 
-從 `.env.example` 複製後依需求修改：
+從 `.env.example` 複製後依需求修改，並放成 `.env.dev`（或 `.env`）：
 
 ```env
 # Django
@@ -140,7 +143,7 @@ REDIS_PASSWORD=dev_password
 | **Stage 0** | 清理 VS Code server extension 快取（防止 SIGPIPE 錯誤累積）                                   |
 | **Stage 1** | Python 虛擬環境（`.venv`）建立或重用；重建時保留已快取的套件                                  |
 | **Stage 2** | 安裝 Playwright Chromium 瀏覽器（若 venv 內有 playwright）                                    |
-| **Stage 3** | 驗證 CLI 工具是否可用：`agent-browser`、`openspec`、`rg`、`fd`、`ast-grep`、`jq`、`fzf`、`gh` |
+| **Stage 3** | 驗證 CLI 工具是否可用：`agent-browser`、`openspec`、`rg`、`fd`、`lsof`、`ast-grep`、`jq`、`fzf`、`gh` |
 | **Stage 4** | 執行 `manage.py migrate` 與 `collectstatic`（若找不到 `manage.py` 則略過）                    |
 
 ---
@@ -181,10 +184,10 @@ REDIS_PASSWORD=dev_password
 
 ## 工具腳本
 
-| 腳本                                | 說明                                                                    |
-| ----------------------------------- | ----------------------------------------------------------------------- |
-| `.devcontainer/rebuild.sh`          | 停止容器、（可選）刪除 Volume、執行 `docker system prune`，然後重建容器 |
-| `.devcontainer/setup-pre-commit.sh` | 安裝或重新安裝 pre-commit hooks，並設定 git 身份                        |
+| 腳本                                | 說明                                                                 |
+| ----------------------------------- | -------------------------------------------------------------------- |
+| `.devcontainer/rebuild.sh`          | 停止容器、執行 `docker system prune`，並可選擇以 `--volumes` 刪除 Volume |
+| `.devcontainer/setup-pre-commit.sh` | 安裝或重新安裝 pre-commit / pre-push hooks                           |
 
 常用檢查捷徑：
 
@@ -214,6 +217,7 @@ openspec --version
 agent-browser --help
 rg --version
 fd --version
+lsof -v
 ast-grep --version
 
 # 確認 GitHub Copilot CLI
@@ -236,4 +240,5 @@ docker compose version
 - **Gitleaks**：透過 pre-commit hook 執行（`pre-commit run gitleaks --all-files`），無需在映像內安裝二進位檔。
 - **Fixture 載入**：此範本不包含專案特定的 `loaddata` 呼叫，請在 `post-create.sh` 的 Stage 4 中自行加入。
 - **mypy 快取**：`mypy-cache` Volume 跨重建保留，加速型別檢查。
+- **ARM64 相容性**：`agent-browser` 在 ARM64 環境會略過自動初始化；若要做瀏覽器自動化，請自行安裝系統 Chromium。
 - **`.env.dev` 不納入版本控制**：`.gitignore` 已設定排除，請勿直接提交含有密碼的 `.env.dev`。

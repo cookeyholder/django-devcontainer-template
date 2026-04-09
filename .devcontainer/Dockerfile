@@ -2,6 +2,8 @@
 # 選擇 slim 而非 mcr.microsoft.com/devcontainers/python 以取得更輕量、可控的基礎
 FROM python:3.13-slim-trixie
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 # 某些基底映像殘留過期 Yarn APT source，會導致 apt-get update 因 GPG 驗章失敗而中斷
 RUN rm -f /etc/apt/sources.list.d/yarn.list /etc/apt/sources.list.d/yarnpkg.list
 
@@ -48,6 +50,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install --no-ins
     fzf \
     jq \
     yq \
+    lsof \
     gh \
     iptables \
     && mkdir -p /etc/apt/keyrings \

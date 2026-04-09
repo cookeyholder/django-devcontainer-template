@@ -15,6 +15,14 @@ log_warning() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERR]${NC} $1"; }
 
 cd /workspace
+for env_file in ".env" ".env.dev"; do
+    if [ -f "$env_file" ]; then
+        set -a
+        # shellcheck source=/dev/null
+        source "$env_file"
+        set +a
+    fi
+done
 PROJECT_DIR="${DJANGO_PROJECT_DIR:-src}"
 
 log_info "🚀 Starting DevContainer initialization..."
@@ -106,7 +114,10 @@ fi
 # ============================================================
 log_info "🤖 Stage 3: Verifying CLI tools..."
 
-if command -v agent-browser >/dev/null 2>&1; then
+ARCHITECTURE="$(uname -m)"
+if [ "$ARCHITECTURE" = "arm64" ] || [ "$ARCHITECTURE" = "aarch64" ]; then
+    log_warning "agent-browser is skipped on ARM64; install Chromium manually if you need browser automation"
+elif command -v agent-browser >/dev/null 2>&1; then
     if agent-browser install --with-deps; then
         log_success "agent-browser initialized"
     else
@@ -124,7 +135,7 @@ else
     log_warning "openspec not found — try: npx @fission-ai/openspec --help"
 fi
 
-for tool_name in rg fd ast-grep jq fzf gh; do
+for tool_name in rg fd ast-grep jq fzf gh lsof; do
     if command -v "$tool_name" >/dev/null 2>&1; then
         log_success "Tool available: $tool_name"
     else

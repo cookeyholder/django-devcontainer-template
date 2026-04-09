@@ -18,6 +18,11 @@ log_error() { echo -e "${RED}[ERR]${NC} $1"; }
 # Move to project root
 cd "$(dirname "$0")/.."
 
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    log_error "Not inside a Git repository"
+    exit 1
+fi
+
 log_info "🔧 Configuring pre-commit hooks..."
 
 # Ensure pre-commit is available
@@ -42,7 +47,7 @@ if [ ! -f ".pre-commit-config.yaml" ]; then
 fi
 
 log_info "Installing hooks..."
-pre-commit install \
+pre-commit install --hook-type pre-commit --hook-type pre-push \
     && log_success "pre-commit hooks installed" \
     || { log_error "pre-commit install failed"; exit 1; }
 
