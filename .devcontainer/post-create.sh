@@ -14,13 +14,70 @@ log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warning() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERR]${NC} $1"; }
 
+load_dotenv_file() {
+    local env_file="$1"
+    local line
+    local key
+    local value
+    local line_number=0
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        line_number=$((line_number + 1))
+        line=${line%$'\r'}
+
+        if [[ "$line" =~ ^[[:space:]]*$ ]] || [[ "$line" =~ ^[[:space:]]*# ]]; then
+            continue
+        fi
+
+        if [[ "$line" =~ ^[[:space:]]*export[[:space:]]+(.+)$ ]]; then
+            line="${BASH_REMATCH[1]}"
+        fi
+
+        if [[ "$line" != *=* ]]; then
+            log_warning "Skipping invalid line ${line_number} in ${env_file}; only simple KEY=VALUE assignments are supported"
+            continue
+        fi
+
+        key="${line%%=*}"
+        value="${line#*=}"
+        key="${key#${key%%[![:space:]]*}}"
+        key="${key%${key##*[![:space:]]}}"
+        value="${value#${value%%[![:space:]]*}}"
+        value="${value%${value##*[![:space:]]}}"
+
+        if [[ "$value" =~ ^\"(.*)\"[[:space:]]*(#.*)?$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        elif [[ "$value" =~ ^\'(.*)\'[[:space:]]*(#.*)?$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        elif [[ "$value" =~ ^[[:space:]]*# ]]; then
+            value=""
+        elif [[ "$value" =~ ^(.*[^[:space:]])[[:space:]]+#.*$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        fi
+
+        value="${value#${value%%[![:space:]]*}}"
+        value="${value%${value##*[![:space:]]}}"
+
+        if [[ ! "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+            log_warning "Skipping invalid variable name in ${env_file}: ${key}"
+            continue
+        fi
+
+        if [[ "$value" =~ ^\"(.*)\"$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        elif [[ "$value" =~ ^\'(.*)\'$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        fi
+
+        printf -v "$key" '%s' "$value"
+        export "$key"
+    done < "$env_file"
+}
+
 cd /workspace
 for env_file in ".env" ".env.dev"; do
     if [ -f "$env_file" ]; then
-        set -a
-        # shellcheck source=/dev/null
-        source "$env_file"
-        set +a
+        load_dotenv_file "$env_file"
     fi
 done
 PROJECT_DIR="${DJANGO_PROJECT_DIR:-src}"

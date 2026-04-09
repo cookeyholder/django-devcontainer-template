@@ -46,11 +46,17 @@
 - Docker、Git Graph、Material Icons、FiraCode 字型
 - Markdown 預覽增強、CSV Rainbow、Color Highlight 等
 
+### AI Skills
+
+- `.agent/skills/` 已同步 `cookeyholder/using-ai-skills` 的 skill 內容，讓 AI agent 可以直接讀取本機 skills。
+- 若 upstream skills 有更新，可執行 `scripts/sync-ai-skills.sh` 重新同步。
+- 同步腳本會重新複製所有具有 `SKILL.md` 的 skill 目錄，並保留各 skill 內的附屬檔案。
+
 ### 腳本與生命週期
 
 - **post-create**：分階段初始化（共 5 個階段，詳見下方）
 - **post-start**：每次啟動時安裝 pre-commit hooks（含 pre-push）、執行 djlint 模板檢查（`templates/`）、套用 `.env` / `.env.dev`，執行 `migrate`，並以背景程序自動啟動 Django 開發伺服器（`/tmp/django-devserver.log`）
-- **rebuild.sh**：以 `docker compose down --remove-orphans` 停止容器，並可透過 `--volumes` 進一步清除 Volume
+- **rebuild.sh**：以 `docker compose down --remove-orphans --rmi local` 停止容器並清除本機映像，並可透過 `--volumes` 進一步清除 Volume
 - **setup-pre-commit.sh**：安裝 / 重新安裝 pre-commit 與 pre-push hooks
 
 ---
@@ -125,6 +131,8 @@ REDIS_PORT=6379
 REDIS_PASSWORD=dev_password
 ```
 
+腳本載入 `.env` / `.env.dev` 時支援簡單的 `KEY=VALUE` 寫法，允許等號前後空白，並且只會把引號外的行尾註解視為註解；不會執行 shell 指令或進行更複雜的展開。
+
 ---
 
 ## 相依套件安裝邏輯
@@ -187,8 +195,9 @@ REDIS_PASSWORD=dev_password
 
 | 腳本                                | 說明                                                                 |
 | ----------------------------------- | -------------------------------------------------------------------- |
-| `.devcontainer/rebuild.sh`          | 停止容器、執行 `docker system prune`，並可選擇以 `--volumes` 刪除 Volume |
+| `.devcontainer/rebuild.sh`          | 停止容器、清理未使用的 Docker 資源，並可選擇以 `--volumes` 刪除 Volume |
 | `.devcontainer/setup-pre-commit.sh` | 安裝或重新安裝 pre-commit / pre-push hooks                           |
+| `scripts/sync-ai-skills.sh`         | 重新從 `cookeyholder/using-ai-skills` 同步 `.agent/skills/`            |
 
 常用檢查捷徑：
 

@@ -32,9 +32,14 @@ for argument in "$@"; do
     esac
 done
 
+if [ ! -f "$COMPOSE_FILE" ]; then
+    log_error "Compose file not found: $COMPOSE_FILE"
+    exit 1
+fi
+
 log_info "🧹 Cleaning DevContainer stack..."
 
-compose_args=(down --remove-orphans)
+compose_args=(down --remove-orphans --rmi local)
 if [ "$REMOVE_VOLUMES" = true ]; then
     compose_args+=(--volumes)
 fi
@@ -43,9 +48,6 @@ log_info "Stopping DevContainer containers..."
 docker compose -f "$COMPOSE_FILE" "${compose_args[@]}" \
     && log_success "DevContainer stack stopped" \
     || log_warning "docker compose down completed with warnings"
-
-log_info "Pruning unused Docker resources..."
-docker system prune -f
 
 if [ "$REMOVE_VOLUMES" = true ]; then
     log_warning "Named volumes were removed with docker compose down --volumes"
