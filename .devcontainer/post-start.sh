@@ -12,7 +12,15 @@ log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warning() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 
 is_port_in_use() {
-    lsof -i ":$1" >/dev/null 2>&1
+    lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1
+}
+
+is_django_server_responsive() {
+    curl -fsS --max-time 1 http://127.0.0.1:8000/ >/dev/null 2>&1
+}
+
+describe_port_owner() {
+    lsof -nP -iTCP:"$1" -sTCP:LISTEN 2>/dev/null || true
 }
 
 cd /workspace
@@ -44,14 +52,21 @@ fi
 # Keep the database schema current on every start.
 if [ -x "/workspace/.venv/bin/python" ] && [ -f "/workspace/${PROJECT_DIR}/manage.py" ]; then
     log_info "Running Django migrate..."
-    (
+    if (
         cd "/workspace/${PROJECT_DIR}"
         /workspace/.venv/bin/python manage.py migrate --noinput
-    )
+    ); then
+        log_success "Django migrate completed"
+    else
+        log_warning "Django migrate failed — continuing with post-start hooks"
+    fi
 
     # Auto-start Django dev server if the port is free.
-    if is_port_in_use 8000; then
-        log_info "Port 8000 is already in use, skipping Django auto-start"
+    if is_django_server_responsive; then
+        log_info "Django dev server is already responding on http://127.0.0.1:8000, skipping"
+    elif is_port_in_use 8000; then
+        log_warning "Port 8000 is already in use, skipping Django auto-start"
+        describe_port_owner 8000
     else
         log_info "Starting Django dev server (0.0.0.0:8000)..."
         (

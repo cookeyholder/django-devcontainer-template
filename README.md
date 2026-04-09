@@ -62,7 +62,7 @@
 # （預設 manage.py 位於 src/ 目錄）
 
 # 2. 複製環境變數範例檔
-cp .env.example .env.dev
+cp .env.example .env
 
 # 3. 以 VS Code 開啟專案
 code .
@@ -73,7 +73,7 @@ code .
 
 容器就緒後，瀏覽器開啟 [http://localhost:8000](http://localhost:8000) 即可看到 Django 應用程式。
 
-`post-create.sh` 與 `post-start.sh` 會自動讀取 `.env` 與 `.env.dev`（若存在）；通常建議把本機覆寫放在 `.env.dev`。
+`post-create.sh` 與 `post-start.sh` 會自動讀取 `.env`，並在存在時額外讀取 `.env.dev`。若你要讓 Docker Compose 與腳本都吃到同一份本機設定，請優先使用 `.env`；`.env.dev` 比較適合只給 shell 腳本使用的額外覆寫。
 
 ---
 
@@ -82,7 +82,8 @@ code .
 ```
 my-project/
 ├── .devcontainer/          # DevContainer 設定（此範本）
-├── .env.dev                # 本機環境變數（不納入版本控制）
+├── .env                    # 本機環境變數（不納入版本控制）
+├── .env.dev                # 選用的額外覆寫檔（不納入版本控制）
 ├── .env.example            # 環境變數範例
 ├── src/                    # Django 專案根目錄（預設）
 │   ├── manage.py
@@ -93,7 +94,7 @@ my-project/
 └── ...
 ```
 
-若你的目錄結構不同，在 `.env.dev` 中調整以下變數：
+若你的目錄結構不同，請在 `.env` 中調整以下變數：
 
 ```env
 DJANGO_PROJECT_DIR=src
@@ -102,9 +103,9 @@ DJANGO_SETTINGS_MODULE=config.settings
 
 ---
 
-## 環境變數（`.env.dev`）
+## 環境變數（`.env`）
 
-從 `.env.example` 複製後依需求修改，並放成 `.env.dev`（或 `.env`）：
+從 `.env.example` 複製後依需求修改，並放成 `.env`：
 
 ```env
 # Django
@@ -241,4 +242,5 @@ docker compose version
 - **Fixture 載入**：此範本不包含專案特定的 `loaddata` 呼叫，請在 `post-create.sh` 的 Stage 4 中自行加入。
 - **mypy 快取**：`mypy-cache` Volume 跨重建保留，加速型別檢查。
 - **ARM64 相容性**：`agent-browser` 在 ARM64 環境會略過自動初始化；若要做瀏覽器自動化，請自行安裝系統 Chromium。
+- **`.env.dev`**：可作為額外的 shell-only 覆寫檔，但不建議拿來取代 `.env` 作為 Compose 的主要環境檔。
 - **`.env.dev` 不納入版本控制**：`.gitignore` 已設定排除，請勿直接提交含有密碼的 `.env.dev`。
