@@ -11,8 +11,86 @@ log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warning() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 
+load_dotenv_file() {
+    local env_file="$1"
+    local line
+    local key
+    local value
+    local line_number=0
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        line_number=$((line_number + 1))
+        line=${line%$'\r'}
+
+        if [[ "$line" =~ ^[[:space:]]*$ ]] || [[ "$line" =~ ^[[:space:]]*# ]]; then
+            continue
+        fi
+
+        if [[ "$line" =~ ^[[:space:]]*export[[:space:]]+(.+)$ ]]; then
+            line="${BASH_REMATCH[1]}"
+        fi
+
+        if [[ "$line" != *=* ]]; then
+            log_warning "Skipping invalid line ${line_number} in ${env_file}; only simple KEY=VALUE assignments are supported"
+            continue
+        fi
+
+        key="${line%%=*}"
+        value="${line#*=}"
+        key="${key#${key%%[![:space:]]*}}"
+        key="${key%${key##*[![:space:]]}}"
+        value="${value#${value%%[![:space:]]*}}"
+        value="${value%${value##*[![:space:]]}}"
+
+        if [[ "$value" =~ ^\"(.*)\"[[:space:]]*(#.*)?$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        elif [[ "$value" =~ ^\'(.*)\'[[:space:]]*(#.*)?$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        elif [[ "$value" =~ ^[[:space:]]*# ]]; then
+            value=""
+        elif [[ "$value" =~ ^(.*[^[:space:]])[[:space:]]+#.*$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        fi
+
+        value="${value#${value%%[![:space:]]*}}"
+        value="${value%${value##*[![:space:]]}}"
+
+        if [[ ! "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+            log_warning "Skipping invalid variable name in ${env_file}: ${key}"
+            continue
+        fi
+
+        if [[ "$value" =~ ^\"(.*)\"$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        elif [[ "$value" =~ ^\'(.*)\'$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        fi
+
+        printf -v "$key" '%s' "$value"
+        export "$key"
+    done < "$env_file"
+}
+
+is_port_in_use() {
+    lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1
+}
+
+is_django_server_responsive() {
+    curl -fsS --max-time 1 http://127.0.0.1:8000/ >/dev/null 2>&1
+}
+
+describe_port_owner() {
+    lsof -nP -iTCP:"$1" -sTCP:LISTEN 2>/dev/null || true
+}
+
 cd /workspace
+for env_file in ".env" ".env.dev"; do
+    if [ -f "$env_file" ]; then
+        load_dotenv_file "$env_file"
+    fi
+done
 PROJECT_DIR="${DJANGO_PROJECT_DIR:-src}"
+DJANGO_LOG_FILE="/tmp/django-devserver.log"
 
 log_info "🚀 Running post-start hooks..."
 
@@ -28,17 +106,30 @@ if command -v pre-commit >/dev/null 2>&1 && [ -f ".pre-commit-config.yaml" ]; th
         || log_warning "djlint template check found issues — run manually: pre-commit run djlint-django --all-files"
 fi
 
-# Auto-start Django dev server if not already running
+# Keep the database schema current on every start.
 if [ -x "/workspace/.venv/bin/python" ] && [ -f "/workspace/${PROJECT_DIR}/manage.py" ]; then
-    DJANGO_CMD_PATTERN="manage.py runserver 0.0.0.0:8000"
-    if pgrep -f "$DJANGO_CMD_PATTERN" >/dev/null 2>&1; then
-        log_info "Django dev server already running, skipping"
+    log_info "Running Django migrate..."
+    if (
+        cd "/workspace/${PROJECT_DIR}"
+        /workspace/.venv/bin/python manage.py migrate --noinput
+    ); then
+        log_success "Django migrate completed"
+    else
+        log_warning "Django migrate failed — continuing with post-start hooks"
+    fi
+
+    # Auto-start Django dev server if the port is free.
+    if is_django_server_responsive; then
+        log_info "Django dev server is already responding on http://127.0.0.1:8000, skipping"
+    elif is_port_in_use 8000; then
+        log_warning "Port 8000 is already in use, skipping Django auto-start"
+        describe_port_owner 8000
     else
         log_info "Starting Django dev server (0.0.0.0:8000)..."
         (
             cd "/workspace/${PROJECT_DIR}"
-            nohup /workspace/.venv/bin/python manage.py runserver 0.0.0.0:8000 --noreload \
-                >/tmp/django-devserver.log 2>&1 &
+            nohup /workspace/.venv/bin/python manage.py runserver 0.0.0.0:8000 \
+                >"$DJANGO_LOG_FILE" 2>&1 &
         )
 
         # Wait up to 10 seconds to confirm the server is reachable
@@ -54,7 +145,7 @@ if [ -x "/workspace/.venv/bin/python" ] && [ -f "/workspace/${PROJECT_DIR}/manag
         if [ "$started" = true ]; then
             log_success "Django dev server started: http://localhost:8000"
         else
-            log_warning "Django dev server may not have started — check /tmp/django-devserver.log"
+            log_warning "Django dev server may not have started — check $DJANGO_LOG_FILE"
         fi
     fi
 else
