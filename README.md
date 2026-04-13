@@ -260,7 +260,7 @@ lsof -nP -iTCP:5432 -sTCP:LISTEN
 lsof -nP -iTCP:6379 -sTCP:LISTEN
 
 # 或改用 ss
-ss -ltnp | rg ':8000|:5432|:6379'
+ss -ltnp | grep -E ':8000|:5432|:6379'
 ```
 
 釋放占用的連接埠後，再重新執行 `Dev Containers: Reopen in Container`。

@@ -4,6 +4,12 @@ set -euo pipefail
 PORTS=(8000 5432 6379)
 NAMES=("Django app" "PostgreSQL" "Redis")
 
+if ! command -v lsof >/dev/null 2>&1 && ! command -v ss >/dev/null 2>&1; then
+    echo "[devcontainer][ERROR] Neither 'lsof' nor 'ss' is available on the host."
+    echo "[devcontainer][ERROR] Install one of them, then retry Dev Containers: Reopen in Container."
+    exit 1
+fi
+
 is_port_in_use() {
     local port="$1"
 
@@ -13,7 +19,7 @@ is_port_in_use() {
     fi
 
     if command -v ss >/dev/null 2>&1; then
-        ss -ltn | awk -v p=":${port}" 'NR>1 { if (index($4, p) > 0) { found=1 } } END { exit found?0:1 }'
+        ss -H -ltn "sport = :${port}" | awk 'END { exit (NR>0 ? 0 : 1) }'
         return $?
     fi
 
@@ -29,7 +35,7 @@ find_port_owner() {
     fi
 
     if command -v ss >/dev/null 2>&1; then
-        ss -ltnp 2>/dev/null | awk -v p=":${port}" 'index($4, p) > 0 { print; exit }' | sed -E 's/.*users:\(\("([^"]+)".*pid=([0-9]+).*/\1 (pid \2)/'
+        ss -H -ltnp "sport = :${port}" 2>/dev/null | awk 'NR==1 { print; exit }' | sed -E 's/.*users:\(\("([^"]+)".*pid=([0-9]+).*/\1 (pid \2)/'
         return 0
     fi
 
