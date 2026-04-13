@@ -47,6 +47,7 @@
 
 ### 腳本與生命週期
 
+- **initializeCommand**：建構前檢查主機連接埠 `8000`、`5432`、`6379` 是否可用；若被占用會中止建構並顯示原因
 - **post-create**：分階段初始化（共 5 個階段，詳見下方）
 - **post-start**：每次啟動時安裝 pre-commit hooks（含 pre-push）、執行 djlint 模板檢查（`templates/`），並自動啟動 Django 開發伺服器
 - **rebuild.sh**：完整清除容器與 Volume，準備重建
@@ -183,6 +184,7 @@ REDIS_PASSWORD=dev_password
 
 | 腳本                                | 說明                                                                    |
 | ----------------------------------- | ----------------------------------------------------------------------- |
+| `.devcontainer/check-host-ports.sh` | 建構前檢查 `8000`/`5432`/`6379` 是否被占用，衝突時中止並輸出錯誤訊息      |
 | `.devcontainer/rebuild.sh`          | 停止容器、（可選）刪除 Volume、執行 `docker system prune`，然後重建容器 |
 | `.devcontainer/setup-pre-commit.sh` | 安裝或重新安裝 pre-commit hooks，並設定 git 身份                        |
 
@@ -237,3 +239,28 @@ docker compose version
 - **Fixture 載入**：此範本不包含專案特定的 `loaddata` 呼叫，請在 `post-create.sh` 的 Stage 4 中自行加入。
 - **mypy 快取**：`mypy-cache` Volume 跨重建保留，加速型別檢查。
 - **`.env.dev` 不納入版本控制**：`.gitignore` 已設定排除，請勿直接提交含有密碼的 `.env.dev`。
+
+---
+
+## Port 衝突排除
+
+若 `Dev Containers: Reopen in Container` 在建構前失敗，並看到類似以下訊息：
+
+```text
+[devcontainer][ERROR] Port 6379 is already in use (Redis).
+[devcontainer][ERROR] Build failed because port 6379 is occupied.
+```
+
+代表主機已有程序占用該連接埠。可用下列方式排除：
+
+```bash
+# 查詢占用中的程序
+lsof -nP -iTCP:8000 -sTCP:LISTEN
+lsof -nP -iTCP:5432 -sTCP:LISTEN
+lsof -nP -iTCP:6379 -sTCP:LISTEN
+
+# 或改用 ss
+ss -ltnp | rg ':8000|:5432|:6379'
+```
+
+釋放占用的連接埠後，再重新執行 `Dev Containers: Reopen in Container`。
