@@ -76,6 +76,7 @@
         }
     },
     "initializeCommand": {
+        "check-host-ports": "bash .devcontainer/check-host-ports.sh",
         "check-docker": "docker --version",
         "check-compose": "docker compose version"
     },

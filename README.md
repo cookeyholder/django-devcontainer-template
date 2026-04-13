@@ -54,6 +54,7 @@
 
 ### 腳本與生命週期
 
+- **initializeCommand**：建構前檢查主機連接埠 `8000`、`5432`、`6379` 是否可用；若被占用會中止建構並顯示原因
 - **post-create**：分階段初始化（共 5 個階段，詳見下方）
 - **post-start**：每次啟動時安裝 pre-commit hooks（含 pre-push）、執行 djlint 模板檢查（`templates/`）、套用 `.env` / `.env.dev`，執行 `migrate`，並以背景程序自動啟動 Django 開發伺服器（`/tmp/django-devserver.log`）
 - **rebuild.sh**：以 `docker compose down --remove-orphans --rmi local` 停止容器並清除本機映像，並可透過 `--volumes` 進一步清除 Volume
@@ -195,9 +196,10 @@ REDIS_PASSWORD=dev_password
 
 | 腳本                                | 說明                                                                 |
 | ----------------------------------- | -------------------------------------------------------------------- |
+| `.devcontainer/check-host-ports.sh` | 建構前檢查 `8000`/`5432`/`6379` 是否被占用，衝突時中止並輸出錯誤訊息   |
 | `.devcontainer/rebuild.sh`          | 停止容器、清理未使用的 Docker 資源，並可選擇以 `--volumes` 刪除 Volume |
 | `.devcontainer/setup-pre-commit.sh` | 安裝或重新安裝 pre-commit / pre-push hooks                           |
-| `scripts/sync-ai-skills.sh`         | 重新從 `cookeyholder/using-ai-skills` 同步 `.agent/skills/`            |
+| `scripts/sync-ai-skills.sh`         | 重新從 `cookeyholder/using-ai-skills` 同步 `.agent/skills/`          |
 
 常用檢查捷徑：
 
@@ -253,3 +255,28 @@ docker compose version
 - **ARM64 相容性**：`agent-browser` 在 ARM64 環境會略過自動初始化；若要做瀏覽器自動化，請自行安裝系統 Chromium。
 - **`.env.dev`**：可作為額外的 shell-only 覆寫檔，但不建議拿來取代 `.env` 作為 Compose 的主要環境檔。
 - **`.env.dev` 不納入版本控制**：`.gitignore` 已設定排除，請勿直接提交含有密碼的 `.env.dev`。
+
+---
+
+## Port 衝突排除
+
+若 `Dev Containers: Reopen in Container` 在建構前失敗，並看到類似以下訊息：
+
+```text
+[devcontainer][ERROR] Port 6379 is already in use (Redis).
+[devcontainer][ERROR] Build failed because port 6379 is occupied.
+```
+
+代表主機已有程序占用該連接埠。可用下列方式排除：
+
+```bash
+# 查詢占用中的程序
+lsof -nP -iTCP:8000 -sTCP:LISTEN
+lsof -nP -iTCP:5432 -sTCP:LISTEN
+lsof -nP -iTCP:6379 -sTCP:LISTEN
+
+# 或改用 ss
+ss -ltnp | grep -E ':8000|:5432|:6379'
+```
+
+釋放占用的連接埠後，再重新執行 `Dev Containers: Reopen in Container`。
