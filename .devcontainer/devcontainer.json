@@ -13,6 +13,20 @@
         }
     },
     "forwardPorts": [8000, 5432, 6379, 5555, 8080, 9090],
+    "portsAttributes": {
+        "8000": {
+            "label": "Django",
+            "onAutoForward": "notify"
+        },
+        "5432": {
+            "label": "PostgreSQL",
+            "onAutoForward": "silent"
+        },
+        "6379": {
+            "label": "Redis",
+            "onAutoForward": "silent"
+        }
+    },
     "customizations": {
         "vscode": {
             "extensions": [
@@ -45,6 +59,8 @@
                 "yzhang.markdown-all-in-one"
             ],
             "settings": {
+                "remote.downloadExtensionsLocally": true,
+                "terminal.integrated.defaultProfile.linux": "bash",
                 "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
                 "ruff.configurationPreference": "filesystemFirst",
                 "djlint.useVenv": true,
@@ -69,5 +85,9 @@
     "postAttachCommand": "echo '✅ Django DevContainer ready!' && echo '🌐 Web: http://localhost:8000'",
     "waitFor": "postCreateCommand",
     "remoteUser": "vscode",
+    "shutdownAction": "stopCompose",
+    "containerEnv": {
+        "PIP_DISABLE_PIP_VERSION_CHECK": "1"
+    },
     "overrideCommand": false
 }
